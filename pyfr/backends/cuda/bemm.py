@@ -25,9 +25,9 @@ class CustomPyFRKernels(CUDAKernelProvider):
 
     @traits(a={'dense'})
     def mul(self, a, b, out, alpha=1.0, beta=0.0):
-        if alpha != 1.0 or beta != 0.0:
-            print 'Can not handle case of: ', a.tags, alpha, beta, 'Defaulting to cublas'
-            raise NotImplementedError
+        #if alpha != 1.0 or beta != 0.0:
+            #print 'Can not handle case of: ', a.tags, alpha, beta, 'Defaulting to cublas'
+            #raise NotImplementedError
  
         # Ensure the matrices are compatible
         if a.nrow != out.nrow or a.ncol != b.nrow or b.ncol != out.ncol:
@@ -36,9 +36,9 @@ class CustomPyFRKernels(CUDAKernelProvider):
         # Generate the kernel
         generator = gen.CustomPyFRKernelGenerator()
         matrix = a.get()
-        src = generator.formatKernel(matrix)
+        src = generator.formatKernel(matrix, alpha, beta)
         #grid, block = generator.splay(matrix, out.ncol)
-    
+   
         # Build
         kern = self._build_kernel(self.GEMM_NAME, src, self.GEMM_ARGTYPES)
 

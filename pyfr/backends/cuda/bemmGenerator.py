@@ -24,7 +24,7 @@ class CustomPyFRKernelGenerator:
         return rowData;
 
 
-    def __generateInnerProduct(self, data, double=True):
+    def __generateInnerProduct(self, data, beta=0.0, double=True):
         """ Return a list of statements in the inner loop for matrix 
             multiplication, fully unrolled """
 
@@ -64,14 +64,22 @@ class CustomPyFRKernelGenerator:
             subtermTmpl = 'const double {var} = {sum};'
         else:
             subtermTmpl = 'const float {var} = {sum};'
-        productTmpl = 'c_local[{index} * cstride] = {product};'
+
+        if beta != 0.0:
+            if double:
+                productTmpl = 'c_local[{index} * cstride] = {product} + {beta} * c_local[{index} * cstride];'
+            else:
+                productTmpl = 'c_local[{index} * cstride] = {product} + {beta}f * c_local[{index} * cstride];'
+        else:
+            productTmpl = 'c_local[{index} * cstride] = {product};'
+
         for subterm in subterms.keys():
             printSubterms.append(subtermTmpl
                 .format(var = subterms[subterm], sum = subterm));
 
         for rowIndex, product in products.iteritems():
             printProducts.append(productTmpl
-                .format(index = rowIndex, product = product));
+                .format(index = rowIndex, product = product, beta = beta));
 
         if double:
             local = ['const double *b_local = b + index;', 
@@ -79,6 +87,7 @@ class CustomPyFRKernelGenerator:
         else:
             local = ['const float *b_local = b + index;', 
                     'float *c_local = c + index;'];
+
         return local + printSubterms + printProducts;
 
 
@@ -100,9 +109,13 @@ class CustomPyFRKernelGenerator:
 
         return stub + '\n' + methodbody;
 
-    def formatKernel(self, matrix, double=True):
+    def formatKernel(self, matrix, alpha=1.0, beta=0.0, double=True):
+        # Handle the alpha by pre-multiplying the matrix
+        if alpha != 1.0:
+            matrix *= alpha
+
         preprocessedData = self.__aggregateSubterms(matrix, double)
-        innerProduct = self.__generateInnerProduct(preprocessedData, double)
+        innerProduct = self.__generateInnerProduct(preprocessedData, beta, double)
         kernelCode = self.__formatOuterKernel(innerProduct, double)
 
         return kernelCode
