@@ -26,7 +26,7 @@ class CUDABackend(BaseBackend):
         context.set_cache_config(func_cache.PREFER_SHARED)
 
         from pyfr.backends.cuda import (blasext, cublas, packing, provider,
-                                        types)
+                                        types, bemm)
 
         # Register our data types
         self.const_matrix_cls = types.CUDAConstMatrix
@@ -45,6 +45,7 @@ class CUDABackend(BaseBackend):
         kprovs = [provider.CUDAPointwiseKernelProvider,
                   blasext.CUDABlasExtKernels,
                   packing.CUDAPackingKernels,
+                  bemm.CustomPyFRKernels,
                   cublas.CUDACUBLASKernels]
         self._providers = [k(self) for k in kprovs]
 
